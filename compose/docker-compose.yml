@@ -1,0 +1,38 @@
+# A front end, an API and Postgres. Runs with `docker compose up`, and imports into Miabi as a stack.
+name: board
+services:
+  web:
+    image: ghcr.io/miabi-io/examples/node:latest
+    ports:
+      - "3000"
+    environment:
+      APP_NAME: board-web
+      UPSTREAM_URL: http://api:8000
+
+  api:
+    image: ghcr.io/miabi-io/examples/python:latest
+    ports:
+      - "8000"
+    environment:
+      APP_NAME: board-api
+      DB_URL: postgresql://board:${POSTGRES_PASSWORD}@db:5432/board
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: on-failure
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: board
+      POSTGRES_DB: board
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "board"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  db-data:

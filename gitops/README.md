@@ -14,6 +14,9 @@ read as one bundle, so a folder can be split into files however reads best.
 | [`java`](java) | A plain Java app on distroless, running as non-root with every capability dropped |
 | [`spring-boot`](spring-boot) | A Spring Boot app and the managed Postgres it connects to, with a start period for the JVM |
 | [`laravel`](laravel) | Postgres, Redis, a generated `APP_KEY`, the app, a migration Job and a CronJob |
+| [`stack`](stack) | A `Stack` of a front end and an API with shared env, and a managed Postgres: [`compose/`](../compose) as manifests |
+| [`volumes`](volumes) | A `Volume` and a `Config` mounted into an app, and a second app mounting the same volume read-only |
+| [`replicated-storage`](replicated-storage) | Two replicas of a service sharing a volume on a replicated storage class, in a Swarm cluster |
 | [`full-stack`](full-stack) | A `Project`: front end, API and database, a custom domain, a route with a rate limit |
 | [`environments`](environments) | The same app as `staging` (follows `latest`) and `production` (pinned) |
 
@@ -82,6 +85,25 @@ routes and jobs, so each folder converges in a single sync.
 `runPolicy: onRelease`. It runs `php artisan migrate --force` each time a new release of the app
 goes live, whether the release came from this source, the console, a pipeline or a rollback.
 Applying the same spec again never runs it twice.
+
+**A stack.** [`stack`](stack/app.yaml) groups a front end and an API on one network, so the front
+end calls `http://board-api:8000` by name. `env` on the `Stack` reaches every member, which is
+where settings they share belong. It is the [Docker Compose example](../compose) written as
+manifests, with the `db` container replaced by a managed database.
+
+**Volumes and configs.** [`volumes`](volumes/app.yaml) mounts a `Volume` at `/data`, where the
+[Go app](../go) keeps its notes, and a one-file `Config` at `/etc/go-example/banner.txt`. Redeploy
+`go-notes` and the notes are still there. `go-notes-viewer` mounts the same volume with
+`readOnly: true`: it lists the notes, and adding one fails. Both apps run on the volume's node.
+
+**Replicated storage.** [`replicated-storage`](replicated-storage/app.yaml) runs two replicas as a
+Swarm service on one volume. It needs a cluster and a
+[shared storage class](https://docs.miabi.io/docs/storage/storage-classes#shared-classes-and-failover),
+a replicated filesystem such as CephFS mounted at the same path on every node: replace
+`replicated` and `my-cluster` with yours. Both replicas append to the same file, and when a node
+fails Swarm starts its replica on another node with the data already there. A volume on a
+node-local class is refused here, because each node would get its own empty copy. See
+[Replicated storage](https://docs.miabi.io/docs/use-cases/replicated-storage).
 
 **A custom domain.** [`full-stack`](full-stack/project.yaml) declares a `Domain`, a rate-limit
 `Middleware` and a `Route` with automatic TLS. Change `notes.example.com` to a host you own,

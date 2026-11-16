@@ -1,0 +1,62 @@
+# compose/docker-compose.yml as manifests: the same front end and API in a Stack, with a managed
+# Postgres in place of the db service, so backups and credentials are Miabi's job.
+apiVersion: miabi.io/v1
+kind: Stack
+metadata:
+  name: board
+spec:
+  description: Node front end and Python API, with a managed Postgres
+  env:
+    APP_VERSION: "1.0.0"
+---
+apiVersion: miabi.io/v1
+kind: Database
+metadata:
+  name: board-db
+spec:
+  engine: postgres
+  version: "17-alpine"
+---
+apiVersion: miabi.io/v1
+kind: Application
+metadata:
+  name: board-api
+spec:
+  image: ghcr.io/miabi-io/examples/python
+  tag: latest
+  stack: board
+  ports:
+    - container: 8000
+  healthcheck:
+    type: http
+    path: /healthz
+    intervalSeconds: 10
+  env:
+    APP_NAME: board-api
+    DB_URL: "{{ .databases.board-db.uri }}"
+  resources:
+    memory: 256Mi
+    cpu: "0.5"
+---
+apiVersion: miabi.io/v1
+kind: Application
+metadata:
+  name: board-web
+spec:
+  image: ghcr.io/miabi-io/examples/node
+  tag: latest
+  stack: board
+  externalLabel: board
+  ports:
+    - container: 3000
+      externalAccess: true
+  healthcheck:
+    type: http
+    path: /healthz
+    intervalSeconds: 10
+  env:
+    APP_NAME: board-web
+    UPSTREAM_URL: http://board-api:8000
+  resources:
+    memory: 256Mi
+    cpu: "0.5"

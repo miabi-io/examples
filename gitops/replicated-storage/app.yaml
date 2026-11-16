@@ -1,0 +1,46 @@
+# Two replicas of one app sharing a volume on a replicated storage class, in a Swarm cluster.
+# Replace `replicated` with your shared class and `my-cluster` with your cluster's name.
+apiVersion: miabi.io/v1
+kind: Volume
+metadata:
+  name: shared-notes-data
+spec:
+  size: 1Gi
+  storageClass: replicated
+  placement:
+    location: my-cluster
+---
+apiVersion: miabi.io/v1
+kind: Application
+metadata:
+  name: shared-notes
+spec:
+  image: ghcr.io/miabi-io/examples/go
+  tag: latest
+  externalLabel: shared-notes
+  placement:
+    location: my-cluster
+  deployment:
+    runtime: service
+    replicas: 2
+    strategy: rolling
+  ports:
+    - container: 8080
+      externalAccess: true
+  # A service probes http with the image's curl or wget; distroless has neither, so use its own check.
+  healthcheck:
+    type: image
+  env:
+    APP_NAME: shared-notes
+    DATA_DIR: /data
+  mounts:
+    - volume: shared-notes-data
+      path: /data
+  security:
+    runAsUser: "65532:65532"
+    noNewPrivileges: true
+    capabilities:
+      drop: [ALL]
+  resources:
+    memory: 64Mi
+    cpu: "0.25"

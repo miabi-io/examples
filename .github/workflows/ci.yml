@@ -90,3 +90,5 @@ jobs:
                       print(f"{f}: missing apiVersion miabi.io/v1 or kind"); bad += 1
           print(f"checked {len(files)} files"); sys.exit(1 if bad else 0)
           PY
+      - name: Validate the Docker Compose example
+        run: docker compose --env-file compose/.env.example -f compose/docker-compose.yml config --quiet

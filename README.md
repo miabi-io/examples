@@ -7,16 +7,17 @@ and shuts down cleanly when Miabi replaces a release.
 | Example | Stack | Port | Shows |
 |---|---|---|---|
 | [`node/`](node) | Node.js 22, Express | 3000 | Tests with `node:test`, calling another app by name |
-| [`go/`](go) | Go, [Okapi](https://github.com/jkaninda/okapi), distroless | 8080 | Multi-arch builds, version stamping, a container with no capabilities |
+| [`go/`](go) | Go, [Okapi](https://github.com/jkaninda/okapi), distroless | 8080 | Multi-arch builds, version stamping, no capabilities, notes on a volume |
 | [`python/`](python) | Python 3.13, FastAPI | 8000 | A managed Postgres database wired in through `DB_URL` |
 | [`php/`](php) | PHP 8.4 on [`jkaninda/nginx-php-fpm`](https://github.com/jkaninda/nginx-php-fpm) | 80 | Plain PHP, plus a managed Redis visit counter |
 | [`laravel/`](laravel) | Laravel 13 on `jkaninda/nginx-php-fpm` | 80 | Postgres, Redis, queue worker, migrations as a Job, a CronJob |
 | [`java/`](java) | Java 25, JDK `HttpServer`, distroless | 8080 | No framework, a `jlink` runtime of about 40 MB, no capabilities |
 | [`spring-boot/`](spring-boot) | Java 25, Spring Boot 4 | 8080 | Postgres with Flyway, JVM sizing from the memory limit, graceful shutdown |
-| [`gitops/`](gitops) | `miabi.io/v1` manifests | | One folder per Git source: each app, a multi-app project, staging and production |
+| [`compose/`](compose) | Docker Compose | | A front end, an API and Postgres, imported into Miabi as a stack |
+| [`gitops/`](gitops) | `miabi.io/v1` manifests | | One folder per Git source: each app, a stack, volumes and configs, replicated storage, a multi-app project, staging and production |
 | [`pipelines/`](pipelines) | `kind: Pipeline` specs | | Monorepo builds, build-only images, release with scan and notify, GitHub Actions |
 
-## Three ways to deploy an example
+## Four ways to deploy an example
 
 **1. Apply a manifest.** The images are published to `ghcr.io/miabi-io/examples/<name>`, so a
 manifest from [`gitops/`](gitops) deploys as-is:
@@ -31,7 +32,10 @@ miabi apply -f gitops/python/app.yaml             # Postgres + the app, wired to
 repository and one folder, such as `gitops/laravel`. Miabi keeps the workspace matching that
 folder: a commit is a change, a revert is a rollback. See [`gitops/`](gitops).
 
-**3. Build from source with a pipeline.** Copy an example folder into its own repository and
+**3. Import a Docker Compose file.** Already have a `docker-compose.yml`? `miabi stacks import`
+turns each service into an app in a stack. Try it on [`compose/`](compose).
+
+**4. Build from source with a pipeline.** Copy an example folder into its own repository and
 create an app from it in Miabi. Miabi finds `.miabi/pipeline.yaml` and offers to adopt it, and
 from then on every deploy runs the tests, builds the image on your runner, and rolls it out. To
 build straight from this monorepo instead, use the specs in
@@ -42,6 +46,7 @@ build straight from this monorepo instead, use the specs in
 ```
 .
 ├── node/  go/  python/  php/  laravel/  java/  spring-boot/   # the apps: source, tests, Dockerfile, .miabi/pipeline.yaml
+├── compose/                                                  # a docker-compose.yml to import as a stack
 ├── gitops/                                                   # miabi.io/v1 manifests, one folder per Git source
 ├── pipelines/                                                # pipeline specs for this monorepo, GitHub Actions
 └── .github/workflows/                                        # CI for every example; publishes the ghcr.io images
@@ -87,3 +92,5 @@ use it. GHCR makes a new package private, so set each package to public once aft
 - [Pipelines](https://docs.miabi.io/docs/cicd/pipelines) and
   [build runners](https://docs.miabi.io/docs/cicd/runners)
 - [GitHub Actions](https://docs.miabi.io/docs/cicd/github-actions)
+- [Stacks](https://docs.miabi.io/docs/applications/stacks), [volumes](https://docs.miabi.io/docs/storage/volumes)
+  and [storage classes](https://docs.miabi.io/docs/storage/storage-classes)
