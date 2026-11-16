@@ -1,0 +1,81 @@
+apiVersion: miabi.io/v1
+kind: Volume
+metadata:
+  name: go-notes-data
+spec:
+  size: 1Gi
+---
+apiVersion: miabi.io/v1
+kind: Config
+metadata:
+  name: go-notes-banner
+spec:
+  data:
+    banner.txt: |
+      Notes are stored on a Miabi volume. Redeploy the app and they are still here.
+---
+apiVersion: miabi.io/v1
+kind: Application
+metadata:
+  name: go-notes
+spec:
+  image: ghcr.io/miabi-io/examples/go
+  tag: latest
+  externalLabel: go-notes
+  ports:
+    - container: 8080
+      externalAccess: true
+  healthcheck:
+    type: http
+    path: /healthz
+    intervalSeconds: 10
+  env:
+    APP_NAME: go-notes
+    DATA_DIR: /data
+    BANNER_FILE: /etc/go-example/banner.txt
+  mounts:
+    - volume: go-notes-data
+      path: /data
+    - config: go-notes-banner
+      key: banner.txt
+      path: /etc/go-example/banner.txt
+  security:
+    runAsUser: "65532:65532"
+    noNewPrivileges: true
+    capabilities:
+      drop: [ALL]
+  resources:
+    memory: 64Mi
+    cpu: "0.25"
+---
+# The same volume, mounted read-only: it lists the notes, and adding one fails.
+apiVersion: miabi.io/v1
+kind: Application
+metadata:
+  name: go-notes-viewer
+spec:
+  image: ghcr.io/miabi-io/examples/go
+  tag: latest
+  externalLabel: go-notes-viewer
+  ports:
+    - container: 8080
+      externalAccess: true
+  healthcheck:
+    type: http
+    path: /healthz
+    intervalSeconds: 10
+  env:
+    APP_NAME: go-notes-viewer
+    DATA_DIR: /data
+  mounts:
+    - volume: go-notes-data
+      path: /data
+      readOnly: true
+  security:
+    runAsUser: "65532:65532"
+    noNewPrivileges: true
+    capabilities:
+      drop: [ALL]
+  resources:
+    memory: 64Mi
+    cpu: "0.25"
