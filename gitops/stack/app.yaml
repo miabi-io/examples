@@ -23,7 +23,7 @@ metadata:
   name: board-api
 spec:
   image: ghcr.io/miabi-io/examples/python
-  tag: latest
+  tag: "1.1.0"
   stack: board
   ports:
     - container: 8000
@@ -44,7 +44,7 @@ metadata:
   name: board-web
 spec:
   image: ghcr.io/miabi-io/examples/node
-  tag: latest
+  tag: "1.1.0"
   stack: board
   externalLabel: board
   ports:

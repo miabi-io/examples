@@ -1,4 +1,4 @@
-# Staging follows main: every image the publish workflow pushes as latest.
+# Staging moves first: bump the tag here to a new release before production.
 apiVersion: miabi.io/v1
 kind: Application
 metadata:
@@ -7,7 +7,7 @@ metadata:
     environment: staging
 spec:
   image: ghcr.io/miabi-io/examples/go
-  tag: latest
+  tag: "1.1.0"
   ports:
     - container: 8080
       externalAccess: true

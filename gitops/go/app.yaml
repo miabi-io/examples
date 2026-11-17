@@ -4,7 +4,7 @@ metadata:
   name: go-example
 spec:
   image: ghcr.io/miabi-io/examples/go
-  tag: latest
+  tag: "1.1.0"
   externalLabel: go-example
   ports:
     - container: 8080

@@ -20,7 +20,7 @@ metadata:
   name: go-notes
 spec:
   image: ghcr.io/miabi-io/examples/go
-  tag: latest
+  tag: "1.1.0"
   externalLabel: go-notes
   ports:
     - container: 8080
@@ -55,7 +55,7 @@ metadata:
   name: go-notes-viewer
 spec:
   image: ghcr.io/miabi-io/examples/go
-  tag: latest
+  tag: "1.1.0"
   externalLabel: go-notes-viewer
   ports:
     - container: 8080

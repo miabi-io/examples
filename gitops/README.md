@@ -18,7 +18,7 @@ read as one bundle, so a folder can be split into files however reads best.
 | [`volumes`](volumes) | A `Volume` and a `Config` mounted into an app, and a second app mounting the same volume read-only |
 | [`replicated-storage`](replicated-storage) | Two replicas of a service sharing a volume on a replicated storage class, in a Swarm cluster |
 | [`full-stack`](full-stack) | A `Project`: front end, API and database, a custom domain, a route with a rate limit |
-| [`environments`](environments) | The same app as `staging` (follows `latest`) and `production` (pinned) |
+| [`environments`](environments) | The same app as `staging` and `production`, each pinned to a release |
 
 The images come from `ghcr.io/miabi-io/examples/<name>`, published by this repository's
 [images workflow](../.github/workflows/images.yml).
@@ -112,8 +112,8 @@ step, not something a manifest can declare.
 
 **Promotion.** [`environments`](environments) holds the same app twice. Connect
 `environments/staging` to a staging workspace and `environments/production` to a production one.
-Staging runs `latest`; production moves only when a commit changes its `tag`, so every
-production change is a reviewed, revertible commit.
+Both pin a release tag. To promote, bump staging's `tag`, let it run, then make the same change
+in production, so every production change is a reviewed, revertible commit.
 
 ## Secrets you want in Git
 
