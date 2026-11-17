@@ -12,7 +12,7 @@ metadata:
   name: python-example
 spec:
   image: ghcr.io/miabi-io/examples/python
-  tag: latest
+  tag: "1.1.0"
   externalLabel: python-example
   ports:
     - container: 8000

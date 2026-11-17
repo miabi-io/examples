@@ -20,7 +20,7 @@ spec:
       metadata: { name: notes-api }
       spec:
         image: ghcr.io/miabi-io/examples/python
-        tag: latest
+        tag: "1.1.0"
         ports:
           - container: 8000       # private: only notes-web reaches it
         healthcheck: { type: http, path: /healthz }
@@ -35,7 +35,7 @@ spec:
       metadata: { name: notes-web }
       spec:
         image: ghcr.io/miabi-io/examples/node
-        tag: latest
+        tag: "1.1.0"
         ports:
           - container: 3000
         healthcheck: { type: http, path: /healthz }
