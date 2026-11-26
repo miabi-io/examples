@@ -35,3 +35,23 @@ test('GET /api/upstream is 404 without UPSTREAM_URL', async () => {
   const res = await fetch(`${base}/api/upstream`);
   assert.equal(res.status, 404);
 });
+
+test('GET /api/info lists only the allow-listed MIABI_ variables', async () => {
+  const env = { MIABI_RELEASE: '7', MIABI_NODE: 'worker-2', MIABI_SECRET_TOKEN: 'x' };
+  const srv = createApp(env).listen(0);
+  await new Promise((resolve) => srv.once('listening', resolve));
+  try {
+    const url = `http://127.0.0.1:${srv.address().port}`;
+    const body = await (await fetch(`${url}/api/info`)).json();
+    assert.equal(body.miabi.MIABI_RELEASE, '7');
+    assert.ok(!('MIABI_SECRET_TOKEN' in body.miabi));
+    assert.match(await (await fetch(url)).text(), /Release 7 on node worker-2</);
+  } finally {
+    srv.close();
+  }
+});
+
+test('GET /api/info has an empty miabi object outside Miabi', async () => {
+  const body = await (await fetch(`${base}/api/info`)).json();
+  assert.deepEqual(body.miabi, {});
+});

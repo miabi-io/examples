@@ -10,6 +10,9 @@ and closes in-flight requests on `SIGTERM`, so a rolling deploy drops none.
 | `/api/info` | Version, hostname, Node version, uptime |
 | `/api/upstream` | Calls `UPSTREAM_URL/api/info`. Used in [`gitops/full-stack`](../gitops/full-stack) |
 
+`/api/info` also returns a `miabi` object with what Miabi set in the container, such as
+`MIABI_RELEASE`, `MIABI_NODE` and `MIABI_REPLICA`; outside Miabi it is empty.
+
 | Variable | Default | |
 |---|---|---|
 | `PORT` | `3000` | Port to listen on |

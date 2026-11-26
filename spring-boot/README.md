@@ -13,6 +13,9 @@ embedded H2 database, so the app runs locally with nothing else installed.
 | `GET /api/notes` | The latest 50 notes |
 | `POST /api/notes` | `{"body": "…"}` creates a note |
 
+`/api/info` also returns a `miabi` object with what Miabi set in the container, such as
+`MIABI_RELEASE`, `MIABI_NODE` and `MIABI_REPLICA`; outside Miabi it is empty.
+
 The `notes` table is created by a [Flyway](https://www.red-gate.com/products/flyway/community/)
 migration in [`db/migration`](src/main/resources/db/migration) on startup.
 

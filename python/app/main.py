@@ -1,5 +1,6 @@
 """A small FastAPI service deployed on Miabi, with an optional Postgres-backed notes API."""
 
+import html
 import os
 import platform
 import socket
@@ -12,6 +13,20 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
 STARTED = time.monotonic()
+
+# An allow-list, not a MIABI_ prefix match: users may name their own secrets MIABI_*.
+MIABI_VARS = (
+    "MIABI_APP_NAME",
+    "MIABI_WORKSPACE_NAME",
+    "MIABI_STACK",
+    "MIABI_RELEASE",
+    "MIABI_VERSION",
+    "MIABI_COMMIT",
+    "MIABI_LOCATION",
+    "MIABI_NODE",
+    "MIABI_REPLICA",
+    "MIABI_PUBLIC_URL",
+)
 
 
 def database_url() -> str | None:
@@ -51,14 +66,30 @@ class Note(NoteIn):
     created_at: str
 
 
+def miabi_env() -> dict[str, str]:
+    return {k: v for k in MIABI_VARS if (v := os.environ.get(k))}
+
+
+def release_line(miabi: dict[str, str]) -> str:
+    if "MIABI_RELEASE" not in miabi:
+        return ""
+    line = f"Release {miabi['MIABI_RELEASE']}"
+    if "MIABI_NODE" in miabi:
+        line += f" on node {miabi['MIABI_NODE']}"
+    if "MIABI_REPLICA" in miabi:
+        line += f", replica {miabi['MIABI_REPLICA']}"
+    return f"\n<p>{html.escape(line)}</p>"
+
+
 def info() -> dict:
     return {
-        "app": os.environ.get("APP_NAME", "python-example"),
+        "app": os.environ.get("APP_NAME", os.environ.get("MIABI_APP_NAME", "python-example")),
         "version": os.environ.get("APP_VERSION", "dev"),
         "hostname": socket.gethostname(),
         "python": platform.python_version(),
         "database": database_url() is not None,
         "uptimeSeconds": int(time.monotonic() - STARTED),
+        "miabi": miabi_env(),
     }
 
 
@@ -101,7 +132,7 @@ def index() -> str:
 <style>body{{font:16px/1.5 system-ui,sans-serif;max-width:40rem;margin:4rem auto;padding:0 1rem}}code{{background:#f2f2f2;padding:.1rem .3rem;border-radius:4px}}</style></head>
 <body>
 <h1>Hello from Python on Miabi</h1>
-<p>Version <code>{i['version']}</code> · Python {i['python']} · {db} · served by <code>{i['hostname']}</code></p>
+<p>Version <code>{i['version']}</code> · Python {i['python']} · {db} · served by <code>{i['hostname']}</code></p>{release_line(i['miabi'])}
 <p>Try <a href="/api/info">/api/info</a>, <a href="/api/notes">/api/notes</a> or the OpenAPI docs at <a href="/docs">/docs</a>.</p>
 </body>
 </html>"""

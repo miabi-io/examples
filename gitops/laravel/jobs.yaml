@@ -1,4 +1,4 @@
-# Both override the image entrypoint: it starts nginx and supervisor and ignores arguments.
+# The Laravel jobs override the image entrypoint: it starts nginx and supervisor and ignores arguments.
 apiVersion: miabi.io/v1
 kind: Job
 metadata:
@@ -7,8 +7,9 @@ spec:
   app: laravel-example
   entrypoint: ["php"]
   command: ["artisan", "migrate", "--force"]
-  runPolicy: onRelease            # every release that goes live, including rollbacks
+  runPolicy: beforeRelease        # in each deploy's new image; a failure stops the deploy and the old release keeps serving
   timeoutSeconds: 300
+  backoffLimit: 1
   historyLimit: 10
 ---
 apiVersion: miabi.io/v1
@@ -22,3 +23,26 @@ spec:
   command: ["artisan", "messages:prune", "--days=30"]
   concurrencyPolicy: forbid
   timeoutSeconds: 600
+  env:
+    LOG_LEVEL: debug              # replaces the app's info level for these runs only
+---
+# A third-party image that gets only the database it needs, not the app's APP_KEY or Redis URL.
+apiVersion: miabi.io/v1
+kind: CronJob
+metadata:
+  name: laravel-vacuum
+spec:
+  app: laravel-example
+  schedule: "30 3 * * 0"          # Sundays, UTC
+  image: postgres:17-alpine
+  entrypoint: ["psql"]
+  command: ["-c", "SET client_min_messages = error", "-c", "VACUUM (ANALYZE)"]   # quiet the skipped system catalogs
+  inheritEnv: false
+  env:
+    PGHOST: "{{ .databases.laravel-db.host }}"
+    PGPORT: "{{ .databases.laravel-db.port }}"
+    PGUSER: "{{ .databases.laravel-db.user }}"
+    PGPASSWORD: "{{ .databases.laravel-db.password }}"
+    PGDATABASE: "{{ .databases.laravel-db.name }}"
+  concurrencyPolicy: forbid
+  timeoutSeconds: 900

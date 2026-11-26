@@ -13,7 +13,15 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => env('APP_NAME', env('MIABI_APP_NAME', 'Laravel')),
+
+    // An allow-list, not a MIABI_ prefix match: users may name their own secrets MIABI_*.
+    'miabi' => collect([
+        'MIABI_APP_NAME', 'MIABI_WORKSPACE_NAME', 'MIABI_STACK', 'MIABI_RELEASE', 'MIABI_VERSION',
+        'MIABI_COMMIT', 'MIABI_LOCATION', 'MIABI_NODE', 'MIABI_REPLICA', 'MIABI_PUBLIC_URL',
+    ])->mapWithKeys(fn (string $key) => [$key => (string) env($key, '')])
+        ->filter(fn (string $value) => $value !== '')
+        ->all(),
 
     /*
     |--------------------------------------------------------------------------

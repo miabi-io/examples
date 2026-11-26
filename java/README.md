@@ -12,6 +12,9 @@ For a framework, a database and migrations, see the [Spring Boot example](../spr
 | `/healthz` | `{"status":"ok"}`, the health check |
 | `/api/info` | Version, hostname, Java version, `os/arch`, heap size, uptime |
 
+`/api/info` also returns a `miabi` object with what Miabi set in the container, such as
+`MIABI_RELEASE`, `MIABI_NODE` and `MIABI_REPLICA`; outside Miabi it is empty.
+
 `PORT` (default `8080`), `APP_NAME` and `APP_VERSION` are read from the environment. Without
 `APP_VERSION`, the version comes from `pom.xml`, through the jar's manifest.
 

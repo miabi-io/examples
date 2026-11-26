@@ -1,0 +1,71 @@
+# One Postgres server holding the databases of two apps, instead of one server per app.
+apiVersion: miabi.io/v1
+kind: DatabaseInstance
+metadata:
+  name: examples-pg
+spec:
+  engine: postgres
+  version: "17-alpine"
+  resources:
+    memory: 512Mi
+    cpu: "1"
+---
+apiVersion: miabi.io/v1
+kind: Database
+metadata:
+  name: orders-db
+spec:
+  engine: postgres
+  instance: { type: shared, name: examples-pg }
+---
+apiVersion: miabi.io/v1
+kind: Database
+metadata:
+  name: billing-db
+spec:
+  engine: postgres
+  instance: { type: shared, name: examples-pg }
+---
+apiVersion: miabi.io/v1
+kind: Application
+metadata:
+  name: orders-api
+spec:
+  image: ghcr.io/miabi-io/examples/python
+  tag: "1.1.0"
+  externalLabel: orders-api
+  ports:
+    - container: 8000
+      externalAccess: true
+  healthcheck:
+    type: http
+    path: /healthz
+    intervalSeconds: 10
+  env:
+    APP_NAME: orders-api
+    DB_URL: "{{ .databases.orders-db.uri }}"
+  resources:
+    memory: 256Mi
+    cpu: "0.5"
+---
+apiVersion: miabi.io/v1
+kind: Application
+metadata:
+  name: billing-api
+spec:
+  image: ghcr.io/miabi-io/examples/python
+  tag: "1.1.0"
+  externalLabel: billing-api
+  ports:
+    - container: 8000
+      externalAccess: true
+  healthcheck:
+    type: http
+    path: /healthz
+    intervalSeconds: 10
+  env:
+    APP_NAME: billing-api
+    DB_URL: "{{ .databases.billing-db.uri }}"
+  resources:
+    memory: 256Mi
+    cpu: "0.5"

@@ -13,6 +13,9 @@
             <p class="mt-1 text-sm text-stone-500">
                 Laravel {{ app()->version() }} · PHP {{ PHP_VERSION }} · served by <code>{{ $hostname }}</code>
             </p>
+            @if ($release)
+                <p class="mt-1 text-sm text-stone-500">{{ $release }}</p>
+            @endif
         </header>
 
         @if (session('status'))

@@ -16,7 +16,20 @@ class MessageController extends Controller
             'messages' => Message::published()->latest('published_at')->limit(50)->get(),
             'pending' => Message::pending()->count(),
             'hostname' => gethostname(),
+            'release' => $this->releaseLine(config('app.miabi')),
         ]);
+    }
+
+    /** @param array<string, string> $miabi */
+    private function releaseLine(array $miabi): ?string
+    {
+        if (! isset($miabi['MIABI_RELEASE'])) {
+            return null;
+        }
+
+        return 'Release '.$miabi['MIABI_RELEASE']
+            .(isset($miabi['MIABI_NODE']) ? ' on node '.$miabi['MIABI_NODE'] : '')
+            .(isset($miabi['MIABI_REPLICA']) ? ', replica '.$miabi['MIABI_REPLICA'] : '');
     }
 
     public function store(Request $request): RedirectResponse

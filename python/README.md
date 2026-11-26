@@ -13,6 +13,9 @@ still works.
 | `POST /api/notes` | `{"body": "…"}` creates a note |
 | `/docs` | OpenAPI docs |
 
+`/api/info` also returns a `miabi` object with what Miabi set in the container, such as
+`MIABI_RELEASE`, `MIABI_NODE` and `MIABI_REPLICA`; outside Miabi it is empty.
+
 The `notes` table is created on startup if it does not exist.
 
 ## The database

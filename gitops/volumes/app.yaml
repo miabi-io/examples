@@ -4,6 +4,7 @@ metadata:
   name: go-notes-data
 spec:
   size: 1Gi
+  # placement: { node: worker-1 }   # optional: choose the node; both apps follow the volume there
 ---
 apiVersion: miabi.io/v1
 kind: Config

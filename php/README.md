@@ -11,6 +11,9 @@ the only entry point, and `src/` and `tests/` are never reachable over HTTP.
 | `/healthz` | `{"status":"ok"}`, the health check |
 | `/api/info` | Version, hostname, PHP version, visits |
 
+`/api/info` also returns a `miabi` object with what Miabi set in the container, such as
+`MIABI_RELEASE`, `MIABI_NODE` and `MIABI_REPLICA`; outside Miabi it is empty.
+
 With `REDIS_URL` set, each `/` and `/api/info` request increments a counter in Redis. The
 [manifest](../gitops/php/app.yaml) declares a managed Redis and passes its URL in:
 

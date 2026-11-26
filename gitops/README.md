@@ -13,9 +13,10 @@ read as one bundle, so a folder can be split into files however reads best.
 | [`php`](php) | An app and a managed Redis |
 | [`java`](java) | A plain Java app on distroless, running as non-root with every capability dropped |
 | [`spring-boot`](spring-boot) | A Spring Boot app and the managed Postgres it connects to, with a start period for the JVM |
-| [`laravel`](laravel) | Postgres, Redis, a generated `APP_KEY`, the app, a migration Job and a CronJob |
+| [`laravel`](laravel) | Postgres, Redis, a generated `APP_KEY`, the app, a pre-release migration, and two CronJobs, one on a third-party image |
 | [`stack`](stack) | A `Stack` of a front end and an API with shared env, and a managed Postgres: [`compose/`](../compose) as manifests |
 | [`volumes`](volumes) | A `Volume` and a `Config` mounted into an app, and a second app mounting the same volume read-only |
+| [`shared-database`](shared-database) | A `DatabaseInstance` holding the databases of two apps |
 | [`replicated-storage`](replicated-storage) | Two replicas of a service sharing a volume on a replicated storage class, in a Swarm cluster |
 | [`full-stack`](full-stack) | A `Project`: front end, API and database, a custom domain, a route with a rate limit |
 | [`environments`](environments) | The same app as `staging` and `production`, each pinned to a release |
@@ -72,19 +73,33 @@ secret is written in Git:
 
 ```yaml
 env:
-  DB_URL: "{{ .databases.python-example-db.uri }}"         # resolved at apply time
-  APP_KEY: "{{ .secrets.laravel-app-key }}"                 # a Secret with generate: true
-  UPSTREAM_URL: "{{ .applications.notes-api }}"             # http://notes-api:8000
-secretEnv: [DB_URL, APP_KEY]                                # stored encrypted at rest
+  DB_URL: "{{ .databases.python-example-db.uri }}"           # stored encrypted
+  APP_KEY: "{{ .secrets.laravel-app-key }}"                   # a vault reference, read at each deploy
+  UPSTREAM_URL: "{{ .applications.notes-api }}"               # http://notes-api:8000
+  APP_URL: "{{ .applications.laravel-example.public_url }}"   # the app's own domain, filled in at each deploy
 ```
+
+None of them needs a `secretEnv` entry: Miabi encrypts a resolved credential on its own, and keeps
+a secret as a reference to the vault, so rotating it redeploys the app without a commit.
 
 **Ordering.** Volumes, secrets and domains are created first, then databases, then apps, then
 routes and jobs, so each folder converges in a single sync.
 
 **Migrations.** [`laravel/jobs.yaml`](laravel/jobs.yaml) declares a Job with
-`runPolicy: onRelease`. It runs `php artisan migrate --force` each time a new release of the app
-goes live, whether the release came from this source, the console, a pipeline or a rollback.
-Applying the same spec again never runs it twice.
+`runPolicy: beforeRelease` (Miabi 1.10.32 or later). Every deploy of the app runs
+`php artisan migrate --force` in the new image before the new release starts. If the migration
+fails, the deploy fails and the running release keeps serving. On the first sync the migration runs
+before the app's first container. Rollbacks skip it: they put back an image that already migrated.
+`timeoutSeconds` is required, since the deploy waits for it.
+
+**A job's own environment.** `laravel-prune-messages` sets `LOG_LEVEL: debug` for its runs only.
+`laravel-vacuum` runs `psql` from the `postgres` image with `inheritEnv: false`: it gets the
+database credentials it names and Miabi's `MIABI_*` variables, but not the app's `APP_KEY` or Redis
+URL. Use that for any tool image that has no business seeing the app's secrets.
+
+**Variables Miabi sets.** Every container gets `MIABI_*` variables: the release number, the node,
+the replica, the public URL and more. Each example app reports the ones it uses under `miabi` in
+`/api/info`. See [Variables Miabi sets](https://docs.miabi.io/docs/applications/environment-variables#variables-miabi-sets).
 
 **A stack.** [`stack`](stack/app.yaml) groups a front end and an API on one network, so the front
 end calls `http://board-api:8000` by name. `env` on the `Stack` reaches every member, which is
@@ -94,7 +109,8 @@ manifests, with the `db` container replaced by a managed database.
 **Volumes and configs.** [`volumes`](volumes/app.yaml) mounts a `Volume` at `/data`, where the
 [Go app](../go) keeps its notes, and a one-file `Config` at `/etc/go-example/banner.txt`. Redeploy
 `go-notes` and the notes are still there. `go-notes-viewer` mounts the same volume with
-`readOnly: true`: it lists the notes, and adding one fails. Both apps run on the volume's node.
+`readOnly: true`: it lists the notes, and adding one fails. Both apps run on the volume's node;
+uncomment the volume's `placement` to choose which.
 
 **Replicated storage.** [`replicated-storage`](replicated-storage/app.yaml) runs two replicas as a
 Swarm service on one volume. It needs a cluster and a
@@ -104,6 +120,12 @@ a replicated filesystem such as CephFS mounted at the same path on every node: r
 fails Swarm starts its replica on another node with the data already there. A volume on a
 node-local class is refused here, because each node would get its own empty copy. See
 [Replicated storage](https://docs.miabi.io/docs/use-cases/replicated-storage).
+
+**A shared database server.** [`shared-database`](shared-database/app.yaml) declares one
+Postgres `DatabaseInstance` and puts two logical databases on it with
+`instance: { type: shared, name: examples-pg }`, one per app. The instance is created first and can
+only be removed once no database is left on it. To take over a server created in the console, add
+`adopt: true`.
 
 **A custom domain.** [`full-stack`](full-stack/project.yaml) declares a `Domain`, a rate-limit
 `Middleware` and a `Route` with automatic TLS. Change `notes.example.com` to a host you own,

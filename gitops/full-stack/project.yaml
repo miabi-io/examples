@@ -27,7 +27,6 @@ spec:
         env:
           APP_NAME: notes-api
           DB_URL: "{{ .databases.notes-db.uri }}"
-        secretEnv: [DB_URL]
         resources: { memory: 256Mi, cpu: "0.5" }
 
     - apiVersion: miabi.io/v1

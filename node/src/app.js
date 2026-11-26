@@ -1,14 +1,40 @@
 import os from 'node:os';
 import express from 'express';
 
+// An allow-list, not a MIABI_ prefix match: users may name their own secrets MIABI_*.
+const MIABI_VARS = [
+  'MIABI_APP_NAME',
+  'MIABI_WORKSPACE_NAME',
+  'MIABI_STACK',
+  'MIABI_RELEASE',
+  'MIABI_VERSION',
+  'MIABI_COMMIT',
+  'MIABI_LOCATION',
+  'MIABI_NODE',
+  'MIABI_REPLICA',
+  'MIABI_PUBLIC_URL',
+];
+
+const escapeHtml = (s) =>
+  String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+function releaseLine(m) {
+  if (!m.MIABI_RELEASE) return '';
+  let line = `Release ${m.MIABI_RELEASE}`;
+  if (m.MIABI_NODE) line += ` on node ${m.MIABI_NODE}`;
+  if (m.MIABI_REPLICA) line += `, replica ${m.MIABI_REPLICA}`;
+  return `\n<p>${escapeHtml(line)}</p>`;
+}
+
 export function createApp(env = process.env) {
   const app = express();
   const info = () => ({
-    app: env.APP_NAME || 'node-example',
+    app: env.APP_NAME || env.MIABI_APP_NAME || 'node-example',
     version: env.APP_VERSION || 'dev',
     hostname: os.hostname(),
     node: process.version,
     uptimeSeconds: Math.round(process.uptime()),
+    miabi: Object.fromEntries(MIABI_VARS.filter((k) => env[k]).map((k) => [k, env[k]])),
   });
 
   app.disable('x-powered-by');
@@ -41,7 +67,7 @@ export function createApp(env = process.env) {
 <style>body{font:16px/1.5 system-ui,sans-serif;max-width:40rem;margin:4rem auto;padding:0 1rem}code{background:#f2f2f2;padding:.1rem .3rem;border-radius:4px}</style></head>
 <body>
 <h1>Hello from Node.js on Miabi</h1>
-<p>Version <code>${i.version}</code> · ${i.node} · served by <code>${i.hostname}</code></p>
+<p>Version <code>${i.version}</code> · ${i.node} · served by <code>${i.hostname}</code></p>${releaseLine(i.miabi)}
 <p>You reached it over <code>${req.protocol}</code>. Try <a href="/api/info">/api/info</a> or <a href="/healthz">/healthz</a>.</p>
 </body>
 </html>`);

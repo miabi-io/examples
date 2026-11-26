@@ -36,6 +36,23 @@ func TestInfoReportsVersion(t *testing.T) {
 		ExpectJSONPath("app", "go-example")
 }
 
+func TestInfoListsOnlyAllowedMiabiVars(t *testing.T) {
+	t.Setenv("MIABI_RELEASE", "7")
+	t.Setenv("MIABI_NODE", "worker-2")
+	t.Setenv("MIABI_SECRET_TOKEN", "x")
+
+	srv := newTestServer(t)
+	var got Info
+	okapitest.GET(t, srv+"/api/info").ExpectStatusOK().ParseJSON(&got)
+	if got.Miabi["MIABI_RELEASE"] != "7" {
+		t.Fatalf("miabi = %v", got.Miabi)
+	}
+	if _, ok := got.Miabi["MIABI_SECRET_TOKEN"]; ok {
+		t.Fatalf("miabi leaks MIABI_SECRET_TOKEN: %v", got.Miabi)
+	}
+	okapitest.GET(t, srv+"/").ExpectStatusOK().ExpectBodyContains("<p>Release 7 on node worker-2</p>")
+}
+
 func TestIndexRenders(t *testing.T) {
 	okapitest.GET(t, newTestServer(t)+"/").
 		ExpectStatusOK().

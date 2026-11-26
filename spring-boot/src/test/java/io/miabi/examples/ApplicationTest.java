@@ -10,7 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
-@SpringBootTest(properties = "APP_VERSION=1.2.3")
+@SpringBootTest(properties = {
+        "APP_VERSION=1.2.3", "MIABI_RELEASE=7", "MIABI_NODE=worker-2", "MIABI_SECRET_TOKEN=x"})
 @AutoConfigureMockMvc
 class ApplicationTest {
 
@@ -36,10 +37,21 @@ class ApplicationTest {
     }
 
     @Test
+    void infoListsOnlyAllowedMiabiVars() {
+        assertThat(mvc.get().uri("/api/info"))
+                .hasStatusOk()
+                .bodyJson()
+                .satisfies(json -> {
+                    json.assertThat().extractingPath("$.miabi.MIABI_RELEASE").isEqualTo("7");
+                    json.assertThat().doesNotHavePath("$.miabi.MIABI_SECRET_TOKEN");
+                });
+    }
+
+    @Test
     void indexRenders() {
         assertThat(mvc.get().uri("/"))
                 .hasStatusOk()
-                .bodyText().contains("Hello from Spring Boot on Miabi");
+                .bodyText().contains("Hello from Spring Boot on Miabi", "<p>Release 7 on node worker-2</p>");
     }
 
     @Test

@@ -23,8 +23,6 @@ spec:
     intervalSeconds: 10
   env:
     REDIS_URL: "{{ .databases.php-example-redis.uri }}"
-  secretEnv:
-    - REDIS_URL
   security:
     runAsUser: "1000:1000"
   resources:
