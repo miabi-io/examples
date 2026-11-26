@@ -16,7 +16,7 @@ metadata:
   name: shared-notes
 spec:
   image: ghcr.io/miabi-io/examples/go
-  tag: "1.1.0"
+  tag: "1.2.0"
   externalLabel: shared-notes
   placement:
     location: my-cluster

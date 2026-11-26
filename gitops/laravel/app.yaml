@@ -6,7 +6,7 @@ metadata:
   name: laravel-example
 spec:
   image: ghcr.io/miabi-io/examples/laravel
-  tag: "1.1.0"
+  tag: "1.2.0"
   externalLabel: laravel-example
   ports:
     - container: 80

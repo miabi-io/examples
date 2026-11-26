@@ -4,7 +4,7 @@ metadata:
   name: node-example
 spec:
   image: ghcr.io/miabi-io/examples/node
-  tag: "1.1.0"
+  tag: "1.2.0"
   externalLabel: node-example     # https://node-example.<your-external-domain>
   ports:
     - container: 3000
