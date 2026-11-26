@@ -8,6 +8,20 @@ declare(strict_types=1);
  */
 final class App
 {
+    // An allow-list, not a MIABI_ prefix match: users may name their own secrets MIABI_*.
+    private const MIABI_VARS = [
+        'MIABI_APP_NAME',
+        'MIABI_WORKSPACE_NAME',
+        'MIABI_STACK',
+        'MIABI_RELEASE',
+        'MIABI_VERSION',
+        'MIABI_COMMIT',
+        'MIABI_LOCATION',
+        'MIABI_NODE',
+        'MIABI_REPLICA',
+        'MIABI_PUBLIC_URL',
+    ];
+
     /** @param array<string, string> $env */
     public function __construct(private array $env, private ?Redis $redis = null)
     {
@@ -28,12 +42,22 @@ final class App
     private function info(): array
     {
         return [
-            'app' => $this->env['APP_NAME'] ?? 'php-example',
+            'app' => $this->env['APP_NAME'] ?? $this->env['MIABI_APP_NAME'] ?? 'php-example',
             'version' => $this->env['APP_VERSION'] ?? 'dev',
             'hostname' => gethostname(),
             'php' => PHP_VERSION,
             'visits' => $this->countVisit(),
+            'miabi' => (object) $this->miabi(),
         ];
+    }
+
+    /** @return array<string, string> */
+    private function miabi(): array
+    {
+        return array_filter(
+            array_intersect_key($this->env, array_flip(self::MIABI_VARS)),
+            static fn (string $v): bool => $v !== '',
+        );
     }
 
     private function countVisit(): ?int
@@ -50,6 +74,14 @@ final class App
         $i = $this->info();
         $h = static fn (mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES);
         $visits = $i['visits'] === null ? 'no Redis configured' : $h($i['visits']).' visits (counted in Redis)';
+        $m = $this->miabi();
+        $release = '';
+        if (isset($m['MIABI_RELEASE'])) {
+            $line = 'Release '.$m['MIABI_RELEASE']
+                .(isset($m['MIABI_NODE']) ? ' on node '.$m['MIABI_NODE'] : '')
+                .(isset($m['MIABI_REPLICA']) ? ', replica '.$m['MIABI_REPLICA'] : '');
+            $release = "\n<p>{$h($line)}</p>";
+        }
 
         return <<<HTML
         <!doctype html>
@@ -58,7 +90,7 @@ final class App
         <style>body{font:16px/1.5 system-ui,sans-serif;max-width:40rem;margin:4rem auto;padding:0 1rem}code{background:#f2f2f2;padding:.1rem .3rem;border-radius:4px}</style></head>
         <body>
         <h1>Hello from PHP on Miabi</h1>
-        <p>Version <code>{$h($i['version'])}</code> · PHP {$h($i['php'])} · served by <code>{$h($i['hostname'])}</code></p>
+        <p>Version <code>{$h($i['version'])}</code> · PHP {$h($i['php'])} · served by <code>{$h($i['hostname'])}</code></p>{$release}
         <p>{$visits}</p>
         <p>Try <a href="/api/info">/api/info</a> or <a href="/healthz">/healthz</a>.</p>
         </body>

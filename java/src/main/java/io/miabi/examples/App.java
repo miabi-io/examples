@@ -11,21 +11,43 @@ import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 /** The routes, built on {@link HttpServer} so the image needs no dependencies. */
-public record App(String name, String version) {
+public record App(String name, String version, Map<String, String> miabi) {
+
+    // An allow-list, not a MIABI_ prefix match: users may name their own secrets MIABI_*.
+    static final List<String> MIABI_VARS = List.of(
+            "MIABI_APP_NAME", "MIABI_WORKSPACE_NAME", "MIABI_STACK", "MIABI_RELEASE", "MIABI_VERSION",
+            "MIABI_COMMIT", "MIABI_LOCATION", "MIABI_NODE", "MIABI_REPLICA", "MIABI_PUBLIC_URL");
+
+    public App(String name, String version) {
+        this(name, version, Map.of());
+    }
 
     public static App fromEnv() {
-        String version = System.getenv("APP_VERSION");
+        return fromEnv(System.getenv());
+    }
+
+    static App fromEnv(Map<String, String> env) {
+        String version = env.get("APP_VERSION");
         if (version == null || version.isBlank()) {
             version = App.class.getPackage().getImplementationVersion();
         }
+        Map<String, String> miabi = new LinkedHashMap<>();
+        for (String key : MIABI_VARS) {
+            String value = env.get(key);
+            if (value != null && !value.isEmpty()) {
+                miabi.put(key, value);
+            }
+        }
         return new App(
-                System.getenv().getOrDefault("APP_NAME", "java-example"),
-                version == null ? "dev" : version);
+                env.getOrDefault("APP_NAME", env.getOrDefault("MIABI_APP_NAME", "java-example")),
+                version == null ? "dev" : version,
+                miabi);
     }
 
     public HttpServer start(InetSocketAddress address) throws IOException {
@@ -48,6 +70,7 @@ public record App(String name, String version) {
         info.put("processors", Runtime.getRuntime().availableProcessors());
         info.put("maxHeapMiB", Runtime.getRuntime().maxMemory() / (1024 * 1024));
         info.put("uptimeSeconds", ManagementFactory.getRuntimeMXBean().getUptime() / 1000);
+        info.put("miabi", miabi);
         return info;
     }
 
@@ -58,6 +81,13 @@ public record App(String name, String version) {
             return;
         }
         Map<String, Object> i = info();
+        String release = "";
+        if (miabi.containsKey("MIABI_RELEASE")) {
+            release = "Release " + miabi.get("MIABI_RELEASE")
+                    + (miabi.containsKey("MIABI_NODE") ? " on node " + miabi.get("MIABI_NODE") : "")
+                    + (miabi.containsKey("MIABI_REPLICA") ? ", replica " + miabi.get("MIABI_REPLICA") : "");
+            release = "<p>" + html(release) + "</p>\n";
+        }
         String page = """
                 <!doctype html>
                 <html lang="en">
@@ -66,11 +96,11 @@ public record App(String name, String version) {
                 <body>
                 <h1>Hello from Java on Miabi</h1>
                 <p>Version <code>%s</code> · Java %s · %s · served by <code>%s</code></p>
-                <p>Try <a href="/api/info">/api/info</a> or <a href="/healthz">/healthz</a>.</p>
+                %s<p>Try <a href="/api/info">/api/info</a> or <a href="/healthz">/healthz</a>.</p>
                 </body>
                 </html>
                 """.formatted(html(i.get("app")), html(i.get("version")), html(i.get("java")),
-                html(i.get("platform")), html(i.get("hostname")));
+                html(i.get("platform")), html(i.get("hostname")), release);
         send(ex, 200, "text/html; charset=utf-8", page);
     }
 
@@ -100,10 +130,14 @@ public record App(String name, String version) {
         }
     }
 
-    static String json(Map<String, Object> map) {
+    static String json(Map<?, ?> map) {
         return map.entrySet().stream()
-                .map(e -> quote(e.getKey()) + ":" + (e.getValue() instanceof Number n ? n.toString() : quote(String.valueOf(e.getValue()))))
+                .map(e -> quote(String.valueOf(e.getKey())) + ":" + value(e.getValue()))
                 .collect(Collectors.joining(",", "{", "}"));
+    }
+
+    private static String value(Object v) {
+        return v instanceof Number n ? n.toString() : v instanceof Map<?, ?> m ? json(m) : quote(String.valueOf(v));
     }
 
     private static String quote(String s) {

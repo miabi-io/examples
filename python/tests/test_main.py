@@ -22,6 +22,16 @@ def test_info_reports_version_and_database(client):
     assert body["database"] is False
 
 
+def test_info_lists_only_allowed_miabi_vars(client, monkeypatch):
+    monkeypatch.setenv("MIABI_RELEASE", "7")
+    monkeypatch.setenv("MIABI_NODE", "worker-2")
+    monkeypatch.setenv("MIABI_SECRET_TOKEN", "x")
+    miabi = client.get("/api/info").json()["miabi"]
+    assert miabi["MIABI_RELEASE"] == "7"
+    assert "MIABI_SECRET_TOKEN" not in miabi
+    assert "<p>Release 7 on node worker-2</p>" in client.get("/").text
+
+
 def test_index_renders(client):
     res = client.get("/")
     assert res.status_code == 200

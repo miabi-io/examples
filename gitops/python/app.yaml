@@ -23,8 +23,6 @@ spec:
     intervalSeconds: 10
   env:
     DB_URL: "{{ .databases.python-example-db.uri }}"
-  secretEnv:
-    - DB_URL
   resources:
     memory: 256Mi
     cpu: "0.5"

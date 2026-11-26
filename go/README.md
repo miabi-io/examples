@@ -17,6 +17,9 @@ from the image, which distroless doesn't have, so every release would report unh
 | `/api/notes` | `GET` lists the notes, `POST {"text": "…"}` adds one |
 | `/docs` | OpenAPI docs Okapi generates from the routes |
 
+`/api/info` also returns a `miabi` object with what Miabi set in the container, such as
+`MIABI_RELEASE`, `MIABI_NODE` and `MIABI_REPLICA`; outside Miabi it is empty.
+
 | Variable | Default | |
 |---|---|---|
 | `PORT` | `8080` | Port to listen on |

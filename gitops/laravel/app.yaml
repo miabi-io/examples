@@ -20,6 +20,7 @@ spec:
     APP_NAME: Miabi Guestbook
     APP_ENV: production
     APP_DEBUG: "false"
+    APP_URL: "{{ .applications.laravel-example.public_url }}"   # filled in at each deploy, so links follow a new domain
     APP_KEY: "{{ .secrets.laravel-app-key }}"
     LOG_LEVEL: info
     DB_CONNECTION: pgsql
@@ -28,10 +29,6 @@ spec:
     CACHE_STORE: redis
     QUEUE_CONNECTION: redis
     SESSION_DRIVER: redis
-  secretEnv:
-    - APP_KEY
-    - DB_URL
-    - REDIS_URL
   security:
     runAsUser: "1000:1000"
   resources:

@@ -24,8 +24,6 @@ spec:
     startPeriodSeconds: 30
   env:
     DB_URL: "{{ .databases.spring-boot-example-db.uri }}"
-  secretEnv:
-    - DB_URL
   resources:
     memory: 512Mi
     cpu: "1"

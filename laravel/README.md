@@ -39,6 +39,12 @@ ignores its arguments, so a job without the override would serve HTTP and never 
 `APP_KEY` is a 32-character secret. Laravel accepts a raw 32-byte key for AES-256-CBC, so it
 needs no `base64:` prefix.
 
+## What Miabi tells the app
+
+`/api/info` returns the app name, hostname, Laravel and PHP versions, and a `miabi` object with
+what Miabi set in the container, such as `MIABI_RELEASE`, `MIABI_NODE` and `MIABI_REPLICA`;
+outside Miabi it is empty. The page shows the release and node under the title.
+
 ## Behind the Miabi gateway
 
 TLS ends at the gateway, and [`bootstrap/app.php`](bootstrap/app.php) trusts its

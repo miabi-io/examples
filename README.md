@@ -10,12 +10,12 @@ and shuts down cleanly when Miabi replaces a release.
 | [`go/`](go) | Go, [Okapi](https://github.com/jkaninda/okapi), distroless | 8080 | Multi-arch builds, version stamping, no capabilities, notes on a volume |
 | [`python/`](python) | Python 3.13, FastAPI | 8000 | A managed Postgres database wired in through `DB_URL` |
 | [`php/`](php) | PHP 8.4 on [`jkaninda/nginx-php-fpm`](https://github.com/jkaninda/nginx-php-fpm) | 80 | Plain PHP, plus a managed Redis visit counter |
-| [`laravel/`](laravel) | Laravel 13 on `jkaninda/nginx-php-fpm` | 80 | Postgres, Redis, queue worker, migrations as a Job, a CronJob |
+| [`laravel/`](laravel) | Laravel 13 on `jkaninda/nginx-php-fpm` | 80 | Postgres, Redis, queue worker, migrations before each release, CronJobs |
 | [`java/`](java) | Java 25, JDK `HttpServer`, distroless | 8080 | No framework, a `jlink` runtime of about 40 MB, no capabilities |
 | [`spring-boot/`](spring-boot) | Java 25, Spring Boot 4 | 8080 | Postgres with Flyway, JVM sizing from the memory limit, graceful shutdown |
 | [`compose/`](compose) | Docker Compose | | A front end, an API and Postgres, imported into Miabi as a stack |
-| [`gitops/`](gitops) | `miabi.io/v1` manifests | | One folder per Git source: each app, a stack, volumes and configs, replicated storage, a multi-app project, staging and production |
-| [`pipelines/`](pipelines) | `kind: Pipeline` specs | | Monorepo builds, build-only images, release with scan and notify, GitHub Actions |
+| [`gitops/`](gitops) | `miabi.io/v1` manifests | | One folder per Git source: each app, a stack, volumes and configs, a shared database server, replicated storage, a multi-app project, staging and production |
+| [`pipelines/`](pipelines) | `kind: Pipeline` specs | | Monorepo builds, build-only images, a versioned release with scan and notify, GitHub Actions |
 
 ## Four ways to deploy an example
 
@@ -58,7 +58,7 @@ Each app answers on the same routes, so you can check any of them the same way:
 |---|---|
 | `/` | A page naming the version, runtime and the container that served it |
 | `/healthz` (`/up` for Laravel) | `200` when the app is ready. The manifests use it as the health check |
-| `/api/info` | The same details as JSON |
+| `/api/info` | The same details as JSON, plus a `miabi` object with the release, node, replica and public URL Miabi set |
 
 ## Prerequisites
 

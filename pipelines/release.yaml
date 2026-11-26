@@ -1,5 +1,6 @@
 # A release pipeline for the node example: test, build, scan, notify, deploy, plus a
 # nightly rebuild that picks up base-image fixes. Needs the SLACK_WEBHOOK workspace secret.
+# Each build is tagged v1.x.y, bumped from its Conventional Commit message.
 apiVersion: miabi.io/v1
 kind: Pipeline
 metadata:
@@ -9,6 +10,11 @@ on:
     branches: [main]
   manual: true
   schedule: "0 3 * * *"
+versioning:
+  scheme: semver
+  series: 1.x.x
+  bump_from_commits: true
+  floating_tags: [latest]
 env:
   NODE_ENV: production
 steps:
@@ -22,6 +28,8 @@ steps:
     uses: build
     context: node
     dockerfile: node/Dockerfile
+    build-args:
+      APP_VERSION: ${MIABI_VERSION}
 
   - name: scan
     image: aquasec/trivy:0.67.2
@@ -37,7 +45,7 @@ steps:
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
     run: |
       curl -fsS -X POST -H 'Content-Type: application/json' \
-        -d "{\"text\":\"$MIABI_PIPELINE #$MIABI_RUN_NUMBER built $MIABI_IMAGE_DIGEST from ${MIABI_COMMIT}\"}" \
+        -d "{\"text\":\"$MIABI_PIPELINE #$MIABI_RUN_NUMBER built $MIABI_IMAGE_TAG ($MIABI_IMAGE_DIGEST) from ${MIABI_COMMIT}\"}" \
         "$SLACK_WEBHOOK"
 
   - name: deploy

@@ -26,12 +26,43 @@ type Health struct {
 }
 
 type Info struct {
-	App           string `json:"app"`
-	Version       string `json:"version"`
-	Hostname      string `json:"hostname"`
-	Go            string `json:"go"`
-	Arch          string `json:"arch"`
-	UptimeSeconds int64  `json:"uptimeSeconds"`
+	App           string            `json:"app"`
+	Version       string            `json:"version"`
+	Hostname      string            `json:"hostname"`
+	Go            string            `json:"go"`
+	Arch          string            `json:"arch"`
+	UptimeSeconds int64             `json:"uptimeSeconds"`
+	Miabi         map[string]string `json:"miabi"`
+}
+
+// An allow-list, not a MIABI_ prefix match: users may name their own secrets MIABI_*.
+var miabiVars = []string{
+	"MIABI_APP_NAME", "MIABI_WORKSPACE_NAME", "MIABI_STACK", "MIABI_RELEASE", "MIABI_VERSION",
+	"MIABI_COMMIT", "MIABI_LOCATION", "MIABI_NODE", "MIABI_REPLICA", "MIABI_PUBLIC_URL",
+}
+
+func (i Info) ReleaseLine() string {
+	if i.Miabi["MIABI_RELEASE"] == "" {
+		return ""
+	}
+	line := "Release " + i.Miabi["MIABI_RELEASE"]
+	if node := i.Miabi["MIABI_NODE"]; node != "" {
+		line += " on node " + node
+	}
+	if replica := i.Miabi["MIABI_REPLICA"]; replica != "" {
+		line += ", replica " + replica
+	}
+	return line
+}
+
+func miabiEnv() map[string]string {
+	m := map[string]string{}
+	for _, k := range miabiVars {
+		if v := os.Getenv(k); v != "" {
+			m[k] = v
+		}
+	}
+	return m
 }
 
 func main() {
@@ -70,12 +101,13 @@ func newApp(started time.Time) *okapi.Okapi {
 	hostname, _ := os.Hostname()
 	current := func() Info {
 		return Info{
-			App:           envOr("APP_NAME", "go-example"),
+			App:           envOr("APP_NAME", envOr("MIABI_APP_NAME", "go-example")),
 			Version:       version,
 			Hostname:      hostname,
 			Go:            runtime.Version(),
 			Arch:          runtime.GOOS + "/" + runtime.GOARCH,
 			UptimeSeconds: int64(time.Since(started).Seconds()),
+			Miabi:         miabiEnv(),
 		}
 	}
 
@@ -173,6 +205,7 @@ var page = template.Must(template.New("page").Parse(`<!doctype html>
 <h1>Hello from Go on Miabi</h1>
 {{with .Banner}}<p class="banner">{{.}}</p>{{end}}
 <p>Version <code>{{.Info.Version}}</code> · {{.Info.Go}} · <code>{{.Info.Arch}}</code> · served by <code>{{.Info.Hostname}}</code></p>
+{{with .Info.ReleaseLine}}<p>{{.}}</p>{{end}}
 <h2>Notes</h2>
 {{if .NotesError}}<p>{{.NotesError}}</p>{{else}}
 <form method="post" action="/notes"><input name="text" maxlength="280" placeholder="Write a note" required> <button>Add</button></form>

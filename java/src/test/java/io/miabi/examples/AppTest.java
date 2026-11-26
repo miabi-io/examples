@@ -1,6 +1,7 @@
 package io.miabi.examples;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.sun.net.httpserver.HttpServer;
@@ -31,6 +32,10 @@ class AppTest {
     }
 
     static HttpResponse<String> request(String method, String path) throws Exception {
+        return request(server, method, path);
+    }
+
+    static HttpResponse<String> request(HttpServer server, String method, String path) throws Exception {
         URI uri = URI.create("http://127.0.0.1:" + server.getAddress().getPort() + path);
         HttpRequest req = HttpRequest.newBuilder(uri).method(method, HttpRequest.BodyPublishers.noBody()).build();
         return client.send(req, HttpResponse.BodyHandlers.ofString());
@@ -48,6 +53,25 @@ class AppTest {
         HttpResponse<String> res = request("GET", "/api/info");
         assertEquals(200, res.statusCode());
         assertTrue(res.body().contains("\"version\":\"1.2.3\""), res.body());
+    }
+
+    @Test
+    void infoListsOnlyAllowedMiabiVars() throws Exception {
+        App app = App.fromEnv(Map.of("MIABI_RELEASE", "7", "MIABI_NODE", "worker-2", "MIABI_SECRET_TOKEN", "x"));
+        HttpServer miabi = app.start(new InetSocketAddress("127.0.0.1", 0));
+        try {
+            String body = request(miabi, "GET", "/api/info").body();
+            assertTrue(body.contains("\"miabi\":{\"MIABI_RELEASE\":\"7\",\"MIABI_NODE\":\"worker-2\"}"), body);
+            assertFalse(body.contains("MIABI_SECRET_TOKEN"), body);
+            assertTrue(request(miabi, "GET", "/").body().contains("<p>Release 7 on node worker-2</p>"));
+        } finally {
+            miabi.stop(0);
+        }
+    }
+
+    @Test
+    void infoHasAnEmptyMiabiObjectOutsideMiabi() throws Exception {
+        assertTrue(request("GET", "/api/info").body().contains("\"miabi\":{}"));
     }
 
     @Test

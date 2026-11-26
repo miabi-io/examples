@@ -18,7 +18,7 @@ patterns that need no app at all.
 | [`monorepo/java.yaml`](monorepo/java.yaml) | An app | `mvn verify`, build `java/` for amd64 and arm64, deploy |
 | [`monorepo/spring-boot.yaml`](monorepo/spring-boot.yaml) | An app | `mvn verify`, build `spring-boot/` for amd64 and arm64, deploy |
 | [`build-only.yaml`](build-only.yaml) | A Git repository | Test and build `go/`, push the image, deploy nothing. Also weekly |
-| [`release.yaml`](release.yaml) | An app | Test, build, scan, Slack notice, deploy. Also nightly |
+| [`release.yaml`](release.yaml) | An app | Test, build a versioned `v1.x.y` image, scan, Slack notice, deploy. Also nightly |
 | [`github-actions/deploy.yml`](github-actions/deploy.yml) | — | Build on GitHub, push to GHCR, deploy with `miabi-io/deploy-action` |
 | [`github-actions/trigger-pipeline.yml`](github-actions/trigger-pipeline.yml) | — | Gate on GitHub, then start a Miabi pipeline at the same commit |
 
@@ -86,8 +86,13 @@ scheduled run deploys too, when the pipeline ends in `uses: deploy`.
 ## Things worth knowing
 
 - **A build step sees no `env`.** It shells out to the image build, and nothing crosses that
-  boundary. To get a value into the image, write a file in an earlier step, as
-  [`monorepo/go.yaml`](monorepo/go.yaml) does with the version.
+  boundary. Its `build-args` expand only the version variables, such as `${MIABI_VERSION}`. For
+  anything else, write a file in an earlier step, as [`monorepo/go.yaml`](monorepo/go.yaml) does.
+- **Versions instead of run numbers.** The `versioning:` block in [`release.yaml`](release.yaml)
+  tags each successful build `v1.4.2`, picking the bump from the commit message (`fix:` patch,
+  `feat:` minor, `feat!:` major) and moving `latest` along. Every successful run gets a new
+  version, the nightly rebuild included. Miabi still deploys by digest. See
+  [Versioning](https://docs.miabi.io/docs/cicd/versioning).
 - **Pass values between steps** by appending `KEY=VALUE` to `$MIABI_ENV`.
 - **Secrets** come from the workspace vault as `${{ secrets.NAME }}`, are masked in logs, and a
   missing one fails the run before it starts. [`release.yaml`](release.yaml) needs
