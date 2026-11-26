@@ -12,7 +12,7 @@ metadata:
   name: spring-boot-example
 spec:
   image: ghcr.io/miabi-io/examples/spring-boot
-  tag: "1.1.0"
+  tag: "1.2.0"
   externalLabel: spring-boot-example
   ports:
     - container: 8080

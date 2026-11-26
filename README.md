@@ -82,7 +82,7 @@ Spring Boot on 8080.
 [`images.yml`](.github/workflows/images.yml) builds every example for `linux/amd64` and
 `linux/arm64` and pushes it to `ghcr.io/miabi-io/examples/<name>`: `latest` and `sha-<short>`
 from `main`, plus the version tags from a `v*` tag, such as `1.0.0` for `v1.0.0`. The
-[GitOps examples](gitops) pin `1.1.0`, so tag a release before you use them. GHCR makes a new package private, so set each package to public once after its first push.
+[GitOps examples](gitops) pin `1.2.0`, so tag a release before you use them. GHCR makes a new package private, so set each package to public once after its first push.
 
 ## Documentation
 

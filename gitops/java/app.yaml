@@ -4,7 +4,7 @@ metadata:
   name: java-example
 spec:
   image: ghcr.io/miabi-io/examples/java
-  tag: "1.1.0"
+  tag: "1.2.0"
   externalLabel: java-example
   ports:
     - container: 8080
